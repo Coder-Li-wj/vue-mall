@@ -1,106 +1,155 @@
 <template>
-    <div id="home">
-        <nav-bar class="home-nav"><div slot="center">购物车</div></nav-bar>
-        <home-swiper v-bind:banners="banners"></home-swiper>
-        <recommend-view v-bind:recommends="recommends"></recommend-view>
-        <feature-view></feature-view>
-        <ul>
-            <li>list--1</li>
-            <li>list--2</li>
-            <li>list--3</li>
-            <li>list--4</li>
-            <li>list--5</li>
-            <li>list--6</li>
-            <li>list--7</li>
-            <li>list--8</li>
-            <li>list--9</li>
-            <li>list--10</li>
-            <li>list--11</li>
-            <li>list--12</li>
-            <li>list--13</li>
-            <li>list--14</li>
-            <li>list--15</li>
-            <li>list--16</li>
-            <li>list--17</li>
-            <li>list--18</li>
-            <li>list--19</li>
-            <li>list--20</li>
-            <li>list--21</li>
-            <li>list--22</li>
-            <li>list--23</li>
-            <li>list--24</li>
-            <li>list--25</li>
-            <li>list--26</li>
-            <li>list--27</li>
-            <li>list--28</li>
-            <li>list--29</li>
-            <li>list--30</li>
-            <li>list--31</li>
-            <li>list--32</li>
-            <li>list--33</li>
-            <li>list--34</li>
-            <li>list--35</li>
-            <li>list--36</li>
-            <li>list--37</li>
-            <li>list--38</li>
-            <li>list--39</li>
-            <li>list--40</li>
-            <li>list--41</li>
-            <li>list--42</li>
-            <li>list--43</li>
-            <li>list--44</li>
-            <li>list--45</li>
-            <li>list--46</li>
-            <li>list--47</li>
-            <li>list--48</li>
-            <li>list--49</li>
-            <li>list--50</li>
-        </ul>
-    </div>
+  <div id="home">
+    <nav-bar class="home-nav">
+      <div slot="center">购物街</div>
+    </nav-bar>
+    <!-- 吸顶效果 -->
+      <tab-control class="tab-control" :titles="['流行', '新款', '精选']" @tabClick="tabClick" ref="tabControl1" v-show="isTabFixed"/>
+    <scroll class="content" ref="scroll" :probe-type="3" @scroll="contentScroll" :pull-up-load="true"
+      @pullingUp="loadMore">
+      <home-swiper :banners="banners" @swiperImageLoad="swiperImageLoad" />
+      <recommend-view :recommends="recommends" />
+      <feature-view />
+      <tab-control class="tab-control" :titles="['流行', '新款', '精选']" @tabClick="tabClick" ref="tabControl2"/>
+      <goods-list :goods="showGoods" />
+    </scroll>
+    <back-top @click.native="backClick" v-show="isShowBackTop"></back-top>
+  </div>
 </template>
 
 <script>
-import NavBar from 'components/common/navbar/NavBar'
-import HomeSwiper from './homeComps/HomeSwiper'
-import RecommendView from './homeComps/RecommendView'
-import FeatureView from './homeComps/FeatureView'
+import NavBar from "components/common/navbar/NavBar";
+import TabControl from "components/content/tabControl/TabControl";
+import GoodsList from "components/content/goodsList/GoodsList";
+import BackTop from "components/content/backTop/BackTop";
+import Scroll from "components/common/scroll/Scroll";
+import HomeSwiper from "./childComps/HomeSwiper";
+import RecommendView from "./childComps/RecommendView";
+import FeatureView from "./childComps/FeatureView";
 
-import {getHomeMultidata} from 'network/home.js'
-
+import { getHomeMultidata, getGoodsList } from "network/home";
 export default {
-    name:'home',
-    components:{ //tip:记得NavBar要写在对象里面！！！
-        NavBar,
-        HomeSwiper,
-        RecommendView,
-        FeatureView
-    },
-    data(){
-        return{
-            banners:[],
-            recommends:[]
-        }
-    },
-    created(){
-        getHomeMultidata().then(res => {
-            this.banners = res.data.banner.list
-            this.recommends = res.data.recommend.list
-        })
+  components: {
+    NavBar,
+    TabControl,
+    GoodsList,
+    BackTop,
+    HomeSwiper,
+    RecommendView,
+    FeatureView,
+    Scroll
+  },
+  data() {
+    return {
+      banners: [],
+      recommends: [],
+      goods: {
+        pop: { page: 0, list: [] },
+        new: { page: 0, list: [] },
+        sell: { page: 0, list: [] }
+      },
+      currentType: "pop",
+      isShowBackTop:false,
+      tabOffsetTop:0,
+      isTabFixed:false,//判断是否吸顶
+      saveY:0
+    };
+  },
+  created() {
+    //请求多个数据
+    this.getHomeMultidata();
+    //请求商品列表数据
+    this.getGoodsList("pop");
+    this.getGoodsList("new");
+    this.getGoodsList("sell");
+  },
+  mounted(){  
+  },
+  computed: {
+    showGoods() {
+      return this.goods[this.currentType].list;
     }
-}
+  },
+  //路由进入的函数
+  activated(){
+    this.$refs.scroll.scrollTo(0, this.saveY, 0)
+    this.$refs.scroll.refresh()
+  },
+  //路由离开是的函数
+  deactivated(){
+    //保存到离开时的位置
+    this.saveY = this.$refs.scroll.getScrollY()
+  },
+  methods: {
+    /*事件监听相关方法*/ 
+    tabClick(index) {
+      switch (index) {
+          case 0: this.currentType = 'pop'
+          break
+          case 1: this.currentType = 'new'
+          break
+          case 2: this.currentType = 'sell'
+          break
+      }
+      this.$refs.tabControl1.currentIndex=index
+      this.$refs.tabControl2.currentIndex=index
+    },
+    backClick() {
+      this.$refs.scroll.scrollTo(0, 0,500);
+    },
+    //监听首页滚动
+    contentScroll(position) {
+      //1.判断BackTop是否显示
+      this.isShowBackTop = -position.y > 1000;
+      //2.决定tabControl是否添加fixed属性
+      this.isTabFixed=(-position.y)>this.tabOffsetTop
+    },
+    loadMore() {
+      this.getGoodsList(this.currentType);
+    },
+    //swiper中图片加载完成的时候执行
+    swiperImageLoad(){
+         //获取tabControl的offsetTop
+      this.tabOffsetTop=this.$refs.tabControl2.$el.offsetTop
+    },
+    /**
+     * 网络请求相关的方法
+     */
+    //请求多个数据的方法
+    getHomeMultidata() {
+      getHomeMultidata().then(res => {
+        this.banners = res.data.banner.list;
+        this.recommends = res.data.recommend.list;
+      });
+    },
+    //请求商品列表数据
+    getGoodsList(type) {
+      const page = this.goods[type].page + 1;
+      getGoodsList(type, page).then(res => {
+        this.goods[type].list.push(...res.data.list);
+        this.goods[type].page += 1;
+         this.$refs.scroll.finishPullUp();
+      });
+    }
+  }
+};
 </script>
 
-<style scoped>
-#home{
-    padding-top: 44px;
+<style lang="less" scoped>
+.home-nav {
+  background-color: var(--color-tint);
+  color: #fff;
 }
-.home-nav{
-    background-color: var(--color-tint);
-    color: #fff;
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    z-index: 9;
+.content {
+  overflow: hidden;
+  position: absolute;
+  top: 44px;
+  bottom: 49px;
+  left: 0;
+  right: 0;
+}
+.tab-control{
+position: relative;
+z-index: 9;
 }
 </style>
