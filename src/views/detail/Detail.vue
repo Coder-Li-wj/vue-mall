@@ -1,115 +1,19 @@
 <template>
-    <div id="detail"> 
-        <detail-nav-bar class="detail-nav"></detail-nav-bar>
-        <scroll class="content" ref="scroll">
+    <div class="detail"> 
+        <detail-nav-bar class="detail-nav" @titleClick="titleClick" ref="nav"></detail-nav-bar>
+        <scroll class="content" ref="scroll" :probeType="3" @scroll="contentScroll">
             <!-- tips:scroll里的需要给一个固定高度 -->
             <detail-swiper :topImages="topImages"></detail-swiper>
             <detail-base-info :goods="goods"></detail-base-info>
             <detail-shop-info :shop="shop"></detail-shop-info>
             <detail-goods-info :detailInfo="detailInfo" @imageLoad="imageLoad"></detail-goods-info>
-            <ul>
-                <li>list:1</li>
-                <li>list:2</li>
-                <li>list:3</li>
-                <li>list:4</li>
-                <li>list:5</li>
-                <li>list:6</li>
-                <li>list:7</li>
-                <li>list:8</li>
-                <li>list:9</li>
-                <li>list:10</li>
-                <li>list:11</li>
-                <li>list:12</li>
-                <li>list:13</li>
-                <li>list:14</li>
-                <li>list:15</li>
-                <li>list:16</li>
-                <li>list:17</li>
-                <li>list:18</li>
-                <li>list:19</li>
-                <li>list:20</li>
-                <li>list:21</li>
-                <li>list:22</li>
-                <li>list:23</li>
-                <li>list:24</li>
-                <li>list:25</li>
-                <li>list:26</li>
-                <li>list:27</li>
-                <li>list:28</li>
-                <li>list:29</li>
-                <li>list:30</li>
-                <li>list:31</li>
-                <li>list:32</li>
-                <li>list:33</li>
-                <li>list:34</li>
-                <li>list:35</li>
-                <li>list:36</li>
-                <li>list:37</li>
-                <li>list:38</li>
-                <li>list:39</li>
-                <li>list:40</li>
-                <li>list:41</li>
-                <li>list:42</li>
-                <li>list:43</li>
-                <li>list:44</li>
-                <li>list:45</li>
-                <li>list:46</li>
-                <li>list:47</li>
-                <li>list:48</li>
-                <li>list:49</li>
-                <li>list:50</li>
-                <li>list:51</li>
-                <li>list:52</li>
-                <li>list:53</li>
-                <li>list:54</li>
-                <li>list:55</li>
-                <li>list:56</li>
-                <li>list:57</li>
-                <li>list:58</li>
-                <li>list:59</li>
-                <li>list:60</li>
-                <li>list:61</li>
-                <li>list:62</li>
-                <li>list:63</li>
-                <li>list:64</li>
-                <li>list:65</li>
-                <li>list:66</li>
-                <li>list:67</li>
-                <li>list:68</li>
-                <li>list:69</li>
-                <li>list:70</li>
-                <li>list:71</li>
-                <li>list:72</li>
-                <li>list:73</li>
-                <li>list:74</li>
-                <li>list:75</li>
-                <li>list:76</li>
-                <li>list:77</li>
-                <li>list:78</li>
-                <li>list:79</li>
-                <li>list:80</li>
-                <li>list:81</li>
-                <li>list:82</li>
-                <li>list:83</li>
-                <li>list:84</li>
-                <li>list:85</li>
-                <li>list:86</li>
-                <li>list:87</li>
-                <li>list:88</li>
-                <li>list:89</li>
-                <li>list:90</li>
-                <li>list:91</li>
-                <li>list:92</li>
-                <li>list:93</li>
-                <li>list:94</li>
-                <li>list:95</li>
-                <li>list:96</li>
-                <li>list:97</li>
-                <li>list:98</li>
-                <li>list:99</li>
-                <li>list:100</li>
-            </ul>
+            <detail-param-info ref="param" :paramInfo="paramInfo"></detail-param-info>
+            <detail-comment-info ref="comment" :commentInfo="commentInfo"></detail-comment-info>
+            <goods-list ref="recommend" :goods="recommendList"></goods-list>
         </scroll>
+        <detail-bottom-bar @addToCart="addToCart"></detail-bottom-bar>
+    <back-top @click.native="backClick" v-show="isShowBackTop"></back-top>
+    <toast :message="message" :show="show"></toast>
     </div>
 </template>
 
@@ -119,9 +23,20 @@ import DetailSwiper from './detailComps/DetailSwiper'
 import DetailBaseInfo from './detailComps/DetailBaseInfo'
 import DetailShopInfo from './detailComps/DetailShopInfo'
 import DetailGoodsInfo from './detailComps/DetailGoodsInfo'
-import {getDetail, Goods, Shop} from '../../network/detail'//tips:import的是该函数，而不是该文件名
+import DetailParamInfo from './detailComps/DetailParamInfo'
+import DetailCommentInfo from './detailComps/DetailCommentInfo'
+import DetailRecommendInfo from './detailComps/DetailRecommendInfo'
+import DetailBottomBar from './detailComps/DetailBottomBar'
+import {getDetail, Goods, Shop, GoodsParam, getRecommend} from '../../network/detail'//tips:import的是该函数，而不是该文件名
+import {debounce} from '../../common/utils'
+import {itemListenerMixin, BackTopMixin} from 'common/mixin'
 
 import Scroll from 'components/common/scroll/Scroll'
+import GoodsList from 'components/content/goodsList/GoodsList'
+import Toast from 'components/common/toast/Toast'
+
+import { mapActions } from 'vuex'
+
 
 export default {
     name:'Detail',
@@ -131,15 +46,31 @@ export default {
         DetailBaseInfo,
         DetailShopInfo,
         DetailGoodsInfo,
-        Scroll
+        DetailParamInfo,
+        DetailCommentInfo,
+        DetailRecommendInfo,
+        DetailBottomBar,
+        Scroll,
+        GoodsList,
+        Toast
     },
+    mixins:[itemListenerMixin, BackTopMixin],
     data(){
         return{
             iid:null,
             topImages: [],
             goods:{},
             shop:{},
-            detailInfo:{}
+            detailInfo:{},
+            paramInfo:{},
+            commentInfo:{},
+            recommendList:[],
+            itemImgListener:null,
+            themeTopYs:[],
+            getThemeY:null,
+            currentIndex:0,
+            message:'',
+            show:false
         }
     },
     created(){
@@ -148,7 +79,7 @@ export default {
         //2.根据iid请求详情数据
         getDetail(this.iid).then(
             res => {
-                console.log(res)
+                // console.log(res)
                 const data = res.result
                 //获取顶部轮播图数据
                 this.topImages = data.itemInfo.topImages
@@ -161,31 +92,111 @@ export default {
 
                 //获取商品详细信息
                 this.detailInfo = data.detailInfo
+
+                //获取参数信息
+                this.paramInfo = new GoodsParam(data.itemParams.info, data.itemParams.rule)
+                
+                //获取评论信息
+                if (data.rate.list) {
+                    this.commentInfo = data.rate.list[0]
+                }
+
+                //防抖
+                this.getThemeY = debounce(() => {
+                    this.themeTopYs = []
+                    this.themeTopYs.push(0)
+                    this.themeTopYs.push(this.$refs.param.$el.offsetTop)
+                    this.themeTopYs.push(this.$refs.comment.$el.offsetTop)
+                    this.themeTopYs.push(this.$refs.recommend.$el.offsetTop)
+                },100)
+            }
+        )
+        //3.请求推荐数据
+        getRecommend().then(
+            res => {
+                this.recommendList = res.data.list
             }
         )
     },
+    mounted(){
+        //通过mixin.js混入itemListenerMixin对象
+    },
+    destroyed(){
+    //取消全局事件的监听
+    this.$bus.$off('itemImgLoad', this.itemImgListener)
+    },
     methods:{
+        ...mapActions(['addCart']),
         imageLoad(){
-            console.log(this.$refs.scroll)
             this.$refs.scroll.refresh();
+
+            this.getThemeY()
+        },
+        titleClick(index){
+            this.$refs.scroll.scrollTo(0,-this.themeTopYs[index],500)
+        },
+        contentScroll(position){
+            // console.log(position.y)
+            const positionY = -position.y
+            let len = this.themeTopYs.length
+            for(let i = 0; i < len; i++){
+                if(this.currentIndex!==i&&((i<len -1 && positionY >= this.themeTopYs[i] && positionY<this.themeTopYs[i+1]) ||
+                (i===len-1 && positionY >= this.themeTopYs[i])))
+                {
+                    this.currentIndex = i
+                    // console.log(this.currentIndex);
+                    this.$refs.nav.currentIndex=this.currentIndex
+                }
+            }
+
+            //判断BackTop是否显示
+            this.isShowBackTop = -position.y > 1000;
+        },
+        //添加购物车
+        addToCart(){
+            const product = {}
+            product.image = this.topImages[0]
+            product.title = this.goods.title
+            product.desc = this.goods.desc
+            product.price = this.goods.realPrice
+            product.iid = this.iid
+
+            // this.$store.dispatch('addCart', product)
+            this.addCart(product).then(res => {
+                this.show = true
+                this.message = res
+
+                setTimeout(() => {
+                    this.show = false
+                },2000)
+            })
         }
     }
 }
 </script>
 
 <style scoped>
-#detail{
+.detail{
     position: relative;
-    z-index: 9;
+    z-index: 1;
     background-color: #fff;
-    /* height: 100vh; */
+    height: 100vh;
 }
 .content{
-    height: 568px
-    /* height: calc(100% - 44px) */
+    /* height: 568px */
+    height: calc(100% - 44px - 49px);
+    background-color: #fff;
 }
+/* .detail-nav{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99;
+} */
 .detail-nav{
-    position: relative;
     z-index: 9;
+    position: relative;
+    background-color: #fff;
 }
 </style>

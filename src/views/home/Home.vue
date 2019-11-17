@@ -4,13 +4,24 @@
       <div slot="center">购物街</div>
     </nav-bar>
     <!-- 吸顶效果 -->
-      <tab-control class="tab-control" :titles="['流行', '新款', '精选']" @tabClick="tabClick" ref="tabControl1" v-show="isTabFixed"/>
-    <scroll class="content" ref="scroll" :probe-type="3" @scroll="contentScroll" :pull-up-load="true"
-      @pullingUp="loadMore">
+      <tab-control class="tab-control" 
+                    :titles="['流行', '新款', '精选']" 
+                    @tabClick="tabClick" 
+                    ref="tabControl1" 
+                    v-show="isTabFixed"/>
+    <scroll class="content" 
+            ref="scroll" 
+            :probe-type="3" 
+            @scroll="contentScroll" 
+            :pull-up-load="true"
+            @pullingUp="loadMore">
       <home-swiper :banners="banners" @swiperImageLoad="swiperImageLoad" />
       <recommend-view :recommends="recommends" />
       <feature-view />
-      <tab-control class="tab-control" :titles="['流行', '新款', '精选']" @tabClick="tabClick" ref="tabControl2"/>
+      <tab-control class="tab-control" 
+                  :titles="['流行', '新款', '精选']" 
+                  @tabClick="tabClick" 
+                  ref="tabControl2"/>
       <goods-list :goods="showGoods" />
     </scroll>
     <back-top @click.native="backClick" v-show="isShowBackTop"></back-top>
@@ -21,24 +32,26 @@
 import NavBar from "components/common/navbar/NavBar";
 import TabControl from "components/content/tabControl/TabControl";
 import GoodsList from "components/content/goodsList/GoodsList";
-import BackTop from "components/content/backTop/BackTop";
 import Scroll from "components/common/scroll/Scroll";
 import HomeSwiper from "./childComps/HomeSwiper";
 import RecommendView from "./childComps/RecommendView";
 import FeatureView from "./childComps/FeatureView";
 
+import {debounce} from '../../common/utils'
 import { getHomeMultidata, getGoodsList } from "network/home";
+import {itemListenerMixin, BackTopMixin} from 'common/mixin'
+
 export default {
   components: {
     NavBar,
     TabControl,
     GoodsList,
-    BackTop,
     HomeSwiper,
     RecommendView,
     FeatureView,
     Scroll
   },
+  mixins:[itemListenerMixin, BackTopMixin],
   data() {
     return {
       banners: [],
@@ -49,10 +62,9 @@ export default {
         sell: { page: 0, list: [] }
       },
       currentType: "pop",
-      isShowBackTop:false,
       tabOffsetTop:0,
-      isTabFixed:false,//判断是否吸顶
-      saveY:0
+      isTabFixed:false,
+      saveY:0,
     };
   },
   created() {
@@ -64,6 +76,8 @@ export default {
     this.getGoodsList("sell");
   },
   mounted(){  
+        //通过mixin混入itemListenerMixin对象
+    
   },
   computed: {
     showGoods() {
@@ -79,6 +93,9 @@ export default {
   deactivated(){
     //保存到离开时的位置
     this.saveY = this.$refs.scroll.getScrollY()
+
+    //取消全局事件的监听
+    this.$bus.$off('itemImgLoad', this.itemImgListener)
   },
   methods: {
     /*事件监听相关方法*/ 
@@ -94,9 +111,6 @@ export default {
       this.$refs.tabControl1.currentIndex=index
       this.$refs.tabControl2.currentIndex=index
     },
-    backClick() {
-      this.$refs.scroll.scrollTo(0, 0,500);
-    },
     //监听首页滚动
     contentScroll(position) {
       //1.判断BackTop是否显示
@@ -109,8 +123,8 @@ export default {
     },
     //swiper中图片加载完成的时候执行
     swiperImageLoad(){
-         //获取tabControl的offsetTop
-      this.tabOffsetTop=this.$refs.tabControl2.$el.offsetTop
+    //获取tabControl的offsetTop
+    this.tabOffsetTop=this.$refs.tabControl2.$el.offsetTop
     },
     /**
      * 网络请求相关的方法
@@ -128,7 +142,7 @@ export default {
       getGoodsList(type, page).then(res => {
         this.goods[type].list.push(...res.data.list);
         this.goods[type].page += 1;
-         this.$refs.scroll.finishPullUp();
+        this.$refs.scroll.finishPullUp();
       });
     }
   }

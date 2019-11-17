@@ -9,7 +9,7 @@ export function getDetail(iid){
     })
 }
 
-export class Goods{
+export class Goods{//商品信息
     constructor(itemInfo, columns, services){
         this.title = itemInfo.title
         this.desc = itemInfo.desc
@@ -22,7 +22,7 @@ export class Goods{
     }
 }
 
-export class Shop{
+export class Shop{//店铺信息
     constructor(shopInfo) {
         this.logo = shopInfo.shopLogo
         this.name = shopInfo.name
@@ -32,3 +32,18 @@ export class Shop{
         this.goodsCount = shopInfo.cGoods
     }
 }
+
+export class GoodsParam {//参数信息
+    constructor(info, rule) {
+      // 注: images可能没有值(某些商品有值, 某些没有值)
+      this.image = info.images ? info.images[0] : '';
+      this.infos = info.set;
+      this.sizes = rule.tables;
+    }
+  }
+
+  export function getRecommend(){//推荐列表
+    return request({
+      url:'/recommend'
+    })
+  }
